@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -84,7 +83,6 @@ export function WalletDashboard({
   const [addWalletTab, setAddWalletTab] = useState('import');
   const [walletToDelete, setWalletToDelete] = useState<Wallet | null>(null);
   const [showLockConfirm, setShowLockConfirm] = useState(false);
-  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const { toast } = useToast();
 
   // Initial data fetch when wallet is connected
@@ -525,26 +523,235 @@ export function WalletDashboard({
 
               {/* Mobile Hamburger Menu */}
               <div className="md:hidden">
-                <Sheet open={showMobileMenu} onOpenChange={setShowMobileMenu}>
-                  <SheetTrigger asChild>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
                     <Button variant="outline" size="sm">
                       <Menu className="h-4 w-4" />
                     </Button>
-                  </SheetTrigger>
-                  <SheetContent side="right" className="w-80">
-                    <SheetHeader>
-                      <SheetTitle>Menu</SheetTitle>
-                    </SheetHeader>
-                    <div className="mt-6 space-y-4">
-                      {/* RPC Provider */}
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          setShowRPCManager(true);
-                          setShowMobileMenu(false);
-                        }}
-                        className="w-full justify-start gap-2"
-                      >
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem 
+                      onClick={() => setShowRPCManager(true)}
+                      className="flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      <Wifi className="h-4 w-4" />
+                      <span>RPC Provider</span>
+                    </DropdownMenuItem>
+                    
+                    <DropdownMenuItem 
+                      onClick={() => setShowDAppsManager(true)}
+                      className="flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      <Globe className="h-4 w-4" />
+                      <span>Connected dApps</span>
+                    </DropdownMenuItem>
+                    
+                    <DropdownMenuItem 
+                      onClick={() => setShowAddWalletDialog(true)}
+                      className="flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      <Plus className="h-4 w-4" />
+                      <span>Add Wallet</span>
+                    </DropdownMenuItem>
+                    
+                    <DropdownMenuSeparator />
+                    
+                    <DropdownMenuItem 
+                      onClick={() => setShowLockConfirm(true)}
+                      className="flex items-center justify-center gap-2 cursor-pointer text-orange-600 focus:text-orange-700 dark:text-orange-400 dark:focus:text-orange-300"
+                    >
+                      <Lock className="h-4 w-4" />
+                      <span>Lock Wallet</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+
+              {/* Dialogs - Keep outside of mobile menu for proper functionality */}
+              <Dialog open={showAddWalletDialog} onOpenChange={setShowAddWalletDialog}>
+                <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-hidden">
+                  <DialogHeader>
+                    <DialogTitle>Add New Wallet</DialogTitle>
+                  </DialogHeader>
+                  <div className="flex flex-col max-h-[calc(90vh-120px)]">
+                    <Tabs value={addWalletTab} onValueChange={setAddWalletTab} className="w-full flex flex-col">
+                      <TabsList className="grid w-full grid-cols-2 flex-shrink-0">
+                        <TabsTrigger value="import" className="flex items-center gap-2">
+                          <Download className="h-4 w-4" />
+                          Import
+                        </TabsTrigger>
+                        <TabsTrigger value="generate" className="flex items-center gap-2">
+                          <Plus className="h-4 w-4" />
+                          Generate
+                        </TabsTrigger>
+                      </TabsList>
+                      
+                      <div className="flex-1 overflow-hidden">
+                        <ScrollArea className="h-full max-h-[calc(90vh-180px)]">
+                          <div className="pr-4">
+                            <TabsContent value="import" className="mt-4 data-[state=inactive]:hidden">
+                              <ImportWallet onWalletImported={handleImportSuccess} />
+                            </TabsContent>
+                            
+                            <TabsContent value="generate" className="mt-4 data-[state=inactive]:hidden">
+                              <GenerateWallet onWalletGenerated={handleGenerateSuccess} />
+                            </TabsContent>
+                          </div>
+                        </ScrollArea>
+                      </div>
+                    </Tabs>
+                  </div>
+                </DialogContent>
+              </Dialog>
+              
+              <Dialog open={showRPCManager} onOpenChange={setShowRPCManager}>
+                <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>RPC Provider Management</DialogTitle>
+                  </DialogHeader>
+                  <RPCProviderManager onClose={() => setShowRPCManager(false)} />
+                </DialogContent>
+              </Dialog>
+              
+              <Dialog open={showDAppsManager} onOpenChange={setShowDAppsManager}>
+                <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Connected dApps Management</DialogTitle>
+                  </DialogHeader>
+                  <ConnectedDAppsManager 
+                    wallets={wallets} 
+                    onClose={() => setShowDAppsManager(false)} 
+                  />
+                </DialogContent>
+              </Dialog>
+              
+              <AlertDialog open={showLockConfirm} onOpenChange={setShowLockConfirm}>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Lock Wallet</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to lock your wallet? You will need to enter your password to unlock it again.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDisconnect} className="bg-orange-600 hover:bg-orange-700">
+                      Lock Wallet
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="container mx-auto px-4 py-8 max-w-6xl">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="overview" className="flex items-center gap-2">
+              <PieChart className="h-4 w-4" />
+              <span className="hidden sm:inline">Overview</span>
+            </TabsTrigger>
+            <TabsTrigger value="send" className="flex items-center gap-2">
+              <Send className="h-4 w-4" />
+              <span className="hidden sm:inline">Send</span>
+            </TabsTrigger>
+            <TabsTrigger value="private" className="flex items-center gap-2">
+              <Shield className="h-4 w-4" />
+              <span className="hidden sm:inline">Private</span>
+            </TabsTrigger>
+            <TabsTrigger value="claim" className="flex items-center gap-2">
+              <Gift className="h-4 w-4" />
+              <span className="hidden sm:inline">Claim</span>
+            </TabsTrigger>
+            <TabsTrigger value="history" className="flex items-center gap-2">
+              <History className="h-4 w-4" />
+              <span className="hidden sm:inline">History</span>
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview" className="space-y-6">
+            <Balance 
+              wallet={wallet} 
+              balance={balance}
+              onBalanceUpdate={handleBalanceUpdate}
+              isLoading={isLoadingBalance}
+            />
+          </TabsContent>
+
+          <TabsContent value="send">
+            <Tabs defaultValue="single" className="w-full">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="single">Single Send</TabsTrigger>
+                <TabsTrigger value="multi">Multi Send</TabsTrigger>
+                <TabsTrigger value="file">File Multi Send</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="single" className="mt-6">
+                <SendTransaction
+                  wallet={wallet} 
+                  balance={balance}
+                  nonce={nonce}
+                  onBalanceUpdate={handleBalanceUpdate}
+                  onNonceUpdate={handleNonceUpdate}
+                  onTransactionSuccess={handleTransactionSuccess}
+                />
+              </TabsContent>
+              
+              <TabsContent value="multi" className="mt-6">
+                <MultiSend 
+                  wallet={wallet} 
+                  balance={balance}
+                  nonce={nonce}
+                  onBalanceUpdate={handleBalanceUpdate}
+                  onNonceUpdate={handleNonceUpdate}
+                  onTransactionSuccess={handleTransactionSuccess}
+                />
+              </TabsContent>
+              
+              <TabsContent value="file" className="mt-6">
+                <FileMultiSend 
+                  wallet={wallet} 
+                  balance={balance}
+                  nonce={nonce}
+                  onBalanceUpdate={handleBalanceUpdate}
+                  onNonceUpdate={handleNonceUpdate}
+                  onTransactionSuccess={handleTransactionSuccess}
+                />
+              </TabsContent>
+            </Tabs>
+          </TabsContent>
+
+          <TabsContent value="private">
+            <PrivateTransfer
+              wallet={wallet}
+              onTransactionSuccess={handleTransactionSuccess}
+            />
+          </TabsContent>
+
+          <TabsContent value="claim">
+            <ClaimTransfers
+              wallet={wallet}
+              onTransactionSuccess={handleTransactionSuccess}
+            />
+          </TabsContent>
+
+
+          <TabsContent value="history">
+            <TxHistory 
+              wallet={wallet} 
+              transactions={transactions}
+              onTransactionsUpdate={handleTransactionsUpdate}
+              isLoading={isLoadingTransactions}
+            />
+          </TabsContent>
+        </Tabs>
+      </main>
+    </div>
+  );
+}
                         <Wifi className="h-4 w-4" />
                         RPC Provider
                       </Button>
